@@ -2,6 +2,7 @@
 #include <iostream>
 #include <random>
 #include <thread>
+#include <string>
 
 sf::RenderWindow mWindow;
 
@@ -21,7 +22,7 @@ class Snake {
             s.setSize({15.f, 15.f});
         }
 
-        Snake(float&& a, float&& b) : x(std::move(a)), y(std::move(b)) {
+        Snake(float&& a, float&& b) noexcept : x(std::move(a)), y(std::move(b)) {
             s.setPosition(x, y);
             s.setFillColor(sf::Color::Magenta);
             s.setSize({15.f, 15.f});
@@ -57,6 +58,11 @@ class Game {
             if (!mWindow.isOpen()) {
                 mWindow.create(sf::VideoMode(405, 405), "Snake");
             }
+            textScore.setFont(over);
+            textScore.setString("SCORE\t" + std::to_string(score));
+            textScore.setCharacterSize(20);
+            textScore.setPosition(0.f, 0.f);
+            textScore.setFillColor(sf::Color::White);
             target.setPosition(distribution(generator) * 15,
                                distribution(generator) * 15);
             target.setTextureRect({0, 0, 15, 15});
@@ -87,7 +93,7 @@ class Game {
                    (target.getPosition().y == snake.back().y);
         }
 
-        void processEvents() {
+        void processEvents() noexcept {
             sf::Event event;
             while (mWindow.pollEvent(event)) {
                 switch (event.type) {
@@ -127,6 +133,8 @@ class Game {
                 grow();
                 target.setPosition(distribution(generator) * 15,
                                    distribution(generator) * 15);
+                score += 15;
+                textScore.setString("SCORE\t" + std::to_string(score));
             }
         }
 
@@ -144,6 +152,7 @@ class Game {
                 mWindow.draw(part.show());
             }
             mWindow.draw(target);
+            mWindow.draw(textScore);
             mWindow.display();
         }
 
@@ -154,6 +163,8 @@ class Game {
             text.setCharacterSize(50);
             text.setPosition(150.f, 120.f);
             text.setFillColor(sf::Color::White);
+            textScore.setPosition(160.f, 230.f);
+            mWindow.draw(textScore);
             mWindow.draw(text);
             mWindow.display();
             using namespace std::literals;
@@ -197,6 +208,8 @@ class Game {
         sf::Font over;
         Snake snake;
         std::vector<Snake> sn;
+        int score = 0;
+        sf::Text textScore;
 
         bool mIsMovingUp = false;
         bool mIsMovingDown = false;
