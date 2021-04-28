@@ -12,25 +12,27 @@ std::uniform_int_distribution<int> distribution(0, 405 / 15 - 1);
 class Snake {
     sf::RectangleShape s;
 
+    void createPartOfSnake(const float& x, const float& y) noexcept {
+        s.setPosition(x, y);
+        s.setFillColor(sf::Color::Magenta);
+        s.setSize({15.f, 15.f});
+    }
+
     public:
         float x = distribution(generator) * 15;
         float y = distribution(generator) * 15;
 
         Snake() noexcept {
-            s.setPosition(x, y);
-            s.setFillColor(sf::Color::Magenta);
-            s.setSize({15.f, 15.f});
+            createPartOfSnake(x, y);
         }
 
         Snake(float&& a, float&& b) noexcept : x(std::move(a)), y(std::move(b)) {
-            s.setPosition(x, y);
-            s.setFillColor(sf::Color::Magenta);
-            s.setSize({15.f, 15.f});
+            createPartOfSnake(x, y);
         }
 
         ~Snake() = default;
 
-        bool operator ==(const Snake& s) {
+        bool operator ==(const Snake& s) const {
             return this->x == s.x && this->y == s.y;
         }
 
