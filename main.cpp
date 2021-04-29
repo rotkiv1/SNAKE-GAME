@@ -65,8 +65,14 @@ class Game {
             textScore.setCharacterSize(20);
             textScore.setPosition(0.f, 0.f);
             textScore.setFillColor(sf::Color::White);
-            target.setPosition(distribution(generator) * 15,
-                               distribution(generator) * 15);
+            float x = distribution(generator) * 15;
+            float y = distribution(generator) * 15;
+            while (!canPlaceFoodOutsideSnake(x, y, textScore) &&
+                   !isFoodPlacesRight(x, y, sn)) {
+                x = distribution(generator) * 15;
+                y = distribution(generator) * 15;
+            }
+            target.setPosition(x, y);
             target.setTextureRect({0, 0, 15, 15});
             target.setTexture(food);
             sn.push_back(snake);
@@ -133,11 +139,33 @@ class Game {
             }
             if (checkFood(target, sn)) {
                 grow();
-                target.setPosition(distribution(generator) * 15,
-                                   distribution(generator) * 15);
+                float x = distribution(generator) * 15;
+                float y = distribution(generator) * 15;
+                while (!canPlaceFoodOutsideSnake(x, y, textScore) &&
+                       !isFoodPlacesRight(x, y, sn)) {
+                    x = distribution(generator) * 15;
+                    y = distribution(generator) * 15;
+                }
+                target.setPosition(x, y);
                 score += 15;
                 textScore.setString("SCORE\t" + std::to_string(score));
             }
+        }
+
+        bool canPlaceFoodOutsideSnake(const float& foodX, const float& foodY,
+                          const sf::Text& score) noexcept {
+            return foodX > score.getLocalBounds().width &&
+                   foodY > score.getLocalBounds().height;
+        }
+
+        bool isFoodPlacesRight(const float& foodX, const float& foodY,
+                               const std::vector<Snake>& snake) noexcept {
+            for (const auto& part : snake) {
+                if (part.x == foodX && part.y == foodY) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         bool determineEnd(const std::vector<Snake> sn) noexcept {
