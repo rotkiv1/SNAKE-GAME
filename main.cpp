@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+
 #include <iostream>
 #include <random>
 #include <thread>
@@ -9,76 +10,90 @@ sf::RenderWindow mWindow;
 auto generator = std::default_random_engine(std::random_device()());
 std::uniform_int_distribution<int> distribution(0, 405 / 15 - 1);
 
-class Snake {
-    sf::RectangleShape s;
-
-    void createPartOfSnake(const float& x, const float& y) noexcept {
-        s.setPosition(x, y);
-        s.setFillColor(sf::Color::Magenta);
-        s.setSize({15.f, 15.f});
-    }
+class OnePartOfSnake {
 
     public:
+
         float x = distribution(generator) * 15;
         float y = distribution(generator) * 15;
 
-        Snake() noexcept {
+        OnePartOfSnake() noexcept {
             createPartOfSnake(x, y);
         }
 
-        Snake(float&& a, float&& b) noexcept : x(std::move(a)), y(std::move(b)) {
+        OnePartOfSnake(float&& a, float&& b) noexcept
+        : x(std::move(a)), y(std::move(b)) {
             createPartOfSnake(x, y);
         }
 
-        ~Snake() = default;
+        ~OnePartOfSnake() noexcept = default;
 
-        bool operator ==(const Snake& s) const {
-            return this->x == s.x && this->y == s.y;
+        bool operator ==(const OnePartOfSnake& part) const noexcept {
+            return this->x == part.x && this->y == part.y;
         }
 
-        void update(sf::Vector2<float> v) noexcept {
+        void update(const sf::Vector2<float>& v) noexcept {
             this->x += 15 * v.x;
             this->y += 15 * v.y;
         }
 
-        auto show() noexcept {
-            s.setPosition(x, y);
-            return s;
+        sf::RectangleShape show() noexcept {
+            part.setPosition(x, y);
+            return part;
         }
+
+    private:
+
+        void createPartOfSnake(float x, float y) noexcept {
+            part.setPosition(x, y);
+            part.setFillColor(sf::Color(221, 192, 110));
+            part.setSize({15.f, 15.f});
+        }
+
+        sf::RectangleShape part;
 };
 
 
 class Game {
+
     public:
-        Game() noexcept : movement({1.f, 0.f}) {
-            if (!food.loadFromFile("food.png")) {
-                // error...
-            }
-            if (!over.loadFromFile("snake.ttf")) {
-                // error...
-            }
+
+        Game() : movement({1.f, 0.f}) {
+            over.loadFromFile("snake.ttf");
+
+            backgroundTexture.loadFromFile("background.png");
+            backgroundSprite.setTexture(backgroundTexture);
+
+            imageFood.loadFromFile("food.png");
+            imageFood.createMaskFromColor(sf::Color(4, 1, 44));
+            food.loadFromImage(imageFood);
+
             if (!mWindow.isOpen()) {
                 mWindow.create(sf::VideoMode(405, 405), "Snake");
             }
+
             textScore.setFont(over);
             textScore.setString("SCORE\t" + std::to_string(score));
             textScore.setCharacterSize(20);
             textScore.setPosition(0.f, 0.f);
             textScore.setFillColor(sf::Color::White);
+
             float x = distribution(generator) * 15;
             float y = distribution(generator) * 15;
             while (!canPlaceFoodOutsideSnake(x, y, textScore) &&
-                   !isFoodPlacesRight(x, y, sn)) {
+                   !isFoodPlacesRight(x, y, snake)) {
                 x = distribution(generator) * 15;
                 y = distribution(generator) * 15;
             }
+
             target.setPosition(x, y);
             target.setTextureRect({0, 0, 15, 15});
             target.setTexture(food);
-            sn.push_back(snake);
+
+            snake.push_back(snakeHead);
         }
 
-        ~Game() = default;
+        ~Game() noexcept = default;
 
         void run() {
             sf::Clock clock;
@@ -96,12 +111,15 @@ class Game {
         }
 
     private:
-        bool checkFood(const sf::Sprite& target, const std::vector<Snake>& snake) {
-            return (target.getPosition().x == snake.back().x) &&
-                   (target.getPosition().y == snake.back().y);
+
+        bool checkFood(const sf::Sprite& target,
+                       const std::vector<OnePartOfSnake>& snake) noexcept {
+            auto snakeHeadPosition = snake.back();
+            return (target.getPosition().x == snakeHeadPosition.x) &&
+                   (target.getPosition().y == snakeHeadPosition.y);
         }
 
-        void processEvents() noexcept {
+        void processEvents() {
             sf::Event event;
             while (mWindow.pollEvent(event)) {
                 switch (event.type) {
@@ -118,31 +136,32 @@ class Game {
             }
         }
 
-        void handlePlayerInput(sf::Keyboard::Key key, bool isPressed) {
+        void handlePlayerInput(sf::Keyboard::Key key, bool isPressed) noexcept {
             if (key == sf::Keyboard::W) {
-                mIsMovingUp = (movement.y == 1.f) ? false : isPressed;
+                mIsMovingUp = (movement.y == 1.f) ? !isPressed : isPressed;
             } else if (key == sf::Keyboard::S) {
-                mIsMovingDown = (movement.y == -1.f) ? false : isPressed;
+                mIsMovingDown = (movement.y == -1.f) ? !isPressed : isPressed;
             } else if (key == sf::Keyboard::A) {
-                mIsMovingLeft = (movement.x == 1.f) ? false : isPressed;
+                mIsMovingLeft = (movement.x == 1.f) ? !isPressed : isPressed;
             } else if (key == sf::Keyboard::D) {
-                mIsMovingRight = (movement.x == -1.f) ? false : isPressed;
+                mIsMovingRight = (movement.x == -1.f) ? !isPressed : isPressed;
             }
         }
 
         void update() {
             updateSnake();
-            for (auto i = 0; i < sn.size() - 1; i++) {
-                if (sn[i] == sn.back()) {
+            auto snakeHead = snake.back();
+            for (auto i = 0; i < snake.size() - 1; i++) {
+                if (snake[i] == snakeHead) {
                     runNewGame();
                 }
             }
-            if (checkFood(target, sn)) {
-                grow();
+            if (checkFood(target, snake)) {
+                growSnake();
                 float x = distribution(generator) * 15;
                 float y = distribution(generator) * 15;
                 while (!canPlaceFoodOutsideSnake(x, y, textScore) &&
-                       !isFoodPlacesRight(x, y, sn)) {
+                       !isFoodPlacesRight(x, y, snake)) {
                     x = distribution(generator) * 15;
                     y = distribution(generator) * 15;
                 }
@@ -152,14 +171,14 @@ class Game {
             }
         }
 
-        bool canPlaceFoodOutsideSnake(const float& foodX, const float& foodY,
-                          const sf::Text& score) noexcept {
+        bool canPlaceFoodOutsideSnake(float foodX, float foodY,
+                                      const sf::Text& score) noexcept {
             return foodX > score.getLocalBounds().width &&
                    foodY > score.getLocalBounds().height;
         }
 
-        bool isFoodPlacesRight(const float& foodX, const float& foodY,
-                               const std::vector<Snake>& snake) noexcept {
+        bool isFoodPlacesRight(float foodX, float foodY,
+                               const std::vector<OnePartOfSnake>& snake) noexcept {
             for (const auto& part : snake) {
                 if (part.x == foodX && part.y == foodY) {
                     return false;
@@ -168,17 +187,19 @@ class Game {
             return true;
         }
 
-        bool determineEnd(const std::vector<Snake> sn) noexcept {
-            return (sn.back().x >= 405.f) || (sn.back().x <= -15.f) ||
-                   (sn.back().y <= -15.f) || (sn.back().y >= 405.f);
+        bool determineEnd(const std::vector<OnePartOfSnake>& snake) noexcept {
+            auto headOfSnake = snake.back();
+            return (headOfSnake.x >= 405.f) || (headOfSnake.x <= -15.f) ||
+                   (headOfSnake.y <= -15.f) || (headOfSnake.y >= 405.f);
         }
 
         void render() {
             mWindow.clear();
-            if (determineEnd(sn)) {
+            if (determineEnd(snake)) {
                 runNewGame();
             }
-            for (auto& part : sn) {
+            mWindow.draw(backgroundSprite);
+            for (auto& part : snake) {
                 mWindow.draw(part.show());
             }
             mWindow.draw(target);
@@ -193,24 +214,29 @@ class Game {
             text.setCharacterSize(50);
             text.setPosition(150.f, 120.f);
             text.setFillColor(sf::Color::White);
+
             textScore.setPosition(160.f, 230.f);
+
+            mWindow.draw(backgroundSprite);
             mWindow.draw(textScore);
             mWindow.draw(text);
             mWindow.display();
+
             using namespace std::literals;
             std::this_thread::sleep_for(500ms);
-            Game g2;
-            g2.run();
+
+            Game newGame;
+            newGame.run();
         }
 
-        void grow() {
-            auto x = sn.back();
-            sn.push_back(x);
+        void growSnake() {
+            auto newPart = snake.back();
+            snake.push_back(newPart);
         }
 
         void updateSnake() {
-            auto x = sn.back();
-            sn.erase(sn.begin());
+            auto newPart = snake.back();
+            snake.erase(snake.begin());
             if (mIsMovingUp) {
                 movement.x = 0.f;
                 movement.y = -1.f;
@@ -227,20 +253,22 @@ class Game {
                 movement.x = 1.f;
                 movement.y = 0.f;
             }
-            x.update(movement);
-            sn.push_back(x);
+            newPart.update(movement);
+            snake.push_back(newPart);
         }
 
         sf::Time TimePerFrame = sf::seconds(1.f / 15.f);
-        sf::Sprite target;
-        sf::Texture food;
+        sf::Sprite target, backgroundSprite;
+        sf::Texture food, backgroundTexture;
         sf::Vector2f movement;
         sf::Font over;
-        Snake snake;
-        std::vector<Snake> sn;
-        int score = 0;
         sf::Text textScore;
+        sf::Image imageFood;
 
+        OnePartOfSnake snakeHead;
+        std::vector<OnePartOfSnake> snake;
+
+        int score = 0;
         bool mIsMovingUp = false;
         bool mIsMovingDown = false;
         bool mIsMovingLeft = false;
