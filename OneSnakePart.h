@@ -1,12 +1,14 @@
 #ifndef ONESNAKEPART_H_INCLUDED
 #define ONESNAKEPART_H_INCLUDED
 
+#include "generator.h"
+
 class OnePartOfSnake {
 
     public:
 
-        float x = 105.f;
-        float y = 105.f;
+        float x = distribution(generator) * 15;
+        float y = distribution(generator) * 15;
 
         OnePartOfSnake();
         OnePartOfSnake(float&& a, float&& b) noexcept;
