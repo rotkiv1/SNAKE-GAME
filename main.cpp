@@ -5,50 +5,23 @@
 #include <thread>
 #include <string>
 
+#include "generator.h"
 #include "OneSnakePart.h"
 
-auto generator = std::default_random_engine(std::random_device()());
-std::uniform_int_distribution<int> distribution(0, 405 / 15 - 1);
-
-sf::RenderWindow mWindow;
 
 class Game {
 
     public:
 
         Game() : movement({1.f, 0.f}) {
-            over.loadFromFile("snake.ttf");
+            initGame();
+            mWindow = std::make_shared<sf::RenderWindow>(sf::VideoMode(405, 405),
+                                                         "Snake");
+        }
 
-            backgroundTexture.loadFromFile("background.png");
-            backgroundSprite.setTexture(backgroundTexture);
-
-            imageFood.loadFromFile("food.png");
-            imageFood.createMaskFromColor(sf::Color(4, 1, 44));
-            food.loadFromImage(imageFood);
-
-            if (!mWindow.isOpen()) {
-                mWindow.create(sf::VideoMode(405, 405), "Snake");
-            }
-
-            textScore.setFont(over);
-            textScore.setString("SCORE\t" + std::to_string(score));
-            textScore.setCharacterSize(20);
-            textScore.setPosition(0.f, 0.f);
-            textScore.setFillColor(sf::Color::White);
-
-            float x = distribution(generator) * 15;
-            float y = distribution(generator) * 15;
-            while (!canPlaceFoodOutsideSnake(x, y, textScore) &&
-                   !isFoodPlacesRight(x, y, snake)) {
-                x = distribution(generator) * 15;
-                y = distribution(generator) * 15;
-            }
-
-            target.setPosition(x, y);
-            target.setTextureRect({0, 0, 15, 15});
-            target.setTexture(food);
-
-            snake.push_back(snakeHead);
+        Game(std::shared_ptr<sf::RenderWindow> previous)
+        : mWindow(previous), movement({1.f, 0.f}) {
+            initGame();
         }
 
         ~Game() noexcept = default;
@@ -56,7 +29,7 @@ class Game {
         void run() {
             sf::Clock clock;
             sf::Time timeSinceLastUpdate = sf::Time::Zero;
-            while (mWindow.isOpen()) {
+            while (mWindow->isOpen()) {
                 processEvents();
                 timeSinceLastUpdate += clock.restart();
                 while (timeSinceLastUpdate > TimePerFrame) {
@@ -79,7 +52,7 @@ class Game {
 
         void processEvents() {
             sf::Event event;
-            while (mWindow.pollEvent(event)) {
+            while (mWindow->pollEvent(event)) {
                 switch (event.type) {
                     case sf::Event::KeyPressed:
                         handlePlayerInput(event.key.code, true);
@@ -88,7 +61,7 @@ class Game {
                         handlePlayerInput(event.key.code, false);
                         break;
                     case sf::Event::Closed:
-                        mWindow.close();
+                        mWindow->close();
                         break;
                 }
             }
@@ -152,17 +125,17 @@ class Game {
         }
 
         void render() {
-            mWindow.clear();
+            mWindow->clear();
             if (determineEnd(snake)) {
                 runNewGame();
             }
-            mWindow.draw(backgroundSprite);
+            mWindow->draw(backgroundSprite);
             for (auto& part : snake) {
-                mWindow.draw(part.show());
+                mWindow->draw(part.show());
             }
-            mWindow.draw(target);
-            mWindow.draw(textScore);
-            mWindow.display();
+            mWindow->draw(target);
+            mWindow->draw(textScore);
+            mWindow->display();
         }
 
         void runNewGame() {
@@ -175,15 +148,15 @@ class Game {
 
             textScore.setPosition(160.f, 230.f);
 
-            mWindow.draw(backgroundSprite);
-            mWindow.draw(textScore);
-            mWindow.draw(text);
-            mWindow.display();
+            mWindow->draw(backgroundSprite);
+            mWindow->draw(textScore);
+            mWindow->draw(text);
+            mWindow->display();
 
             using namespace std::literals;
             std::this_thread::sleep_for(500ms);
 
-            Game newGame;
+            Game newGame(mWindow);
             newGame.run();
         }
 
@@ -215,6 +188,37 @@ class Game {
             snake.push_back(newPart);
         }
 
+        void initGame() {
+            over.loadFromFile("snake.ttf");
+
+            backgroundTexture.loadFromFile("background.png");
+            backgroundSprite.setTexture(backgroundTexture);
+
+            imageFood.loadFromFile("food.png");
+            imageFood.createMaskFromColor(sf::Color(4, 1, 44));
+            food.loadFromImage(imageFood);
+
+            textScore.setFont(over);
+            textScore.setString("SCORE\t" + std::to_string(score));
+            textScore.setCharacterSize(20);
+            textScore.setPosition(0.f, 0.f);
+            textScore.setFillColor(sf::Color::White);
+
+            float x = distribution(generator) * 15;
+            float y = distribution(generator) * 15;
+            while (!canPlaceFoodOutsideSnake(x, y, textScore) &&
+                   !isFoodPlacesRight(x, y, snake)) {
+                x = distribution(generator) * 15;
+                y = distribution(generator) * 15;
+            }
+
+            target.setPosition(x, y);
+            target.setTextureRect({0, 0, 15, 15});
+            target.setTexture(food);
+
+            snake.push_back(snakeHead);
+        }
+
         sf::Time TimePerFrame = sf::seconds(1.f / 15.f);
         sf::Sprite target, backgroundSprite;
         sf::Texture food, backgroundTexture;
@@ -222,6 +226,7 @@ class Game {
         sf::Font over;
         sf::Text textScore;
         sf::Image imageFood;
+        std::shared_ptr<sf::RenderWindow> mWindow;
 
         OnePartOfSnake snakeHead;
         std::vector<OnePartOfSnake> snake;
@@ -232,6 +237,7 @@ class Game {
         bool mIsMovingLeft = false;
         bool mIsMovingRight = false;
 };
+
 
 int main() {
     Game g;
