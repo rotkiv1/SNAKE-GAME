@@ -5,54 +5,12 @@
 #include <thread>
 #include <string>
 
-sf::RenderWindow mWindow;
+#include "OneSnakePart.h"
 
 auto generator = std::default_random_engine(std::random_device()());
 std::uniform_int_distribution<int> distribution(0, 405 / 15 - 1);
 
-class OnePartOfSnake {
-
-    public:
-
-        float x = distribution(generator) * 15;
-        float y = distribution(generator) * 15;
-
-        OnePartOfSnake() noexcept {
-            createPartOfSnake(x, y);
-        }
-
-        OnePartOfSnake(float&& a, float&& b) noexcept
-        : x(std::move(a)), y(std::move(b)) {
-            createPartOfSnake(x, y);
-        }
-
-        ~OnePartOfSnake() noexcept = default;
-
-        bool operator ==(const OnePartOfSnake& part) const noexcept {
-            return this->x == part.x && this->y == part.y;
-        }
-
-        void update(const sf::Vector2<float>& v) noexcept {
-            this->x += 15 * v.x;
-            this->y += 15 * v.y;
-        }
-
-        sf::RectangleShape show() noexcept {
-            part.setPosition(x, y);
-            return part;
-        }
-
-    private:
-
-        void createPartOfSnake(float x, float y) noexcept {
-            part.setPosition(x, y);
-            part.setFillColor(sf::Color(221, 192, 110));
-            part.setSize({15.f, 15.f});
-        }
-
-        sf::RectangleShape part;
-};
-
+sf::RenderWindow mWindow;
 
 class Game {
 
@@ -138,13 +96,13 @@ class Game {
 
         void handlePlayerInput(sf::Keyboard::Key key, bool isPressed) noexcept {
             if (key == sf::Keyboard::W) {
-                mIsMovingUp = (movement.y == 1.f) ? !isPressed : isPressed;
+                mIsMovingUp = (movement.y == 1.f) ? false : isPressed;
             } else if (key == sf::Keyboard::S) {
-                mIsMovingDown = (movement.y == -1.f) ? !isPressed : isPressed;
+                mIsMovingDown = (movement.y == -1.f) ? false : isPressed;
             } else if (key == sf::Keyboard::A) {
-                mIsMovingLeft = (movement.x == 1.f) ? !isPressed : isPressed;
+                mIsMovingLeft = (movement.x == 1.f) ? false : isPressed;
             } else if (key == sf::Keyboard::D) {
-                mIsMovingRight = (movement.x == -1.f) ? !isPressed : isPressed;
+                mIsMovingRight = (movement.x == -1.f) ? false : isPressed;
             }
         }
 
