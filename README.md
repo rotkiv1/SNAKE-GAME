@@ -5,7 +5,7 @@ Inspired by old snake game on Nokia, i decided to make my own version :)
 
 
 
-https://user-images.githubusercontent.com/83311097/118157421-d4f66900-b41a-11eb-9a36-9960306257a5.mp4
+
 
 
 
